@@ -74,16 +74,17 @@ class _PaginaLoginEstado extends State<PaginaLogin> {
 
                     // Email
                     CampoTexto(
-                      etiqueta: '',
-                      sugerencia: 'Correo electronico',
+                      etiqueta: 'Correo Electrónico',
+                      sugerencia: 'tu@email.com',
                       iconoInicio: Icons.email_outlined,
                       hayError: mensajeError != null,
                     ),
+                    const SizedBox(height: 14),
 
                     // Contraseña
                     CampoTexto(
-                      etiqueta: '',
-                      sugerencia: 'Contraseña',
+                      etiqueta: 'Contraseña',
+                      sugerencia: 'Mínimo 6 caracteres',
                       iconoInicio: Icons.lock_outline_rounded,
                       oculto: !mostrarContrasena,
                       hayError: mensajeError != null,
@@ -176,7 +177,18 @@ class _PaginaLoginEstado extends State<PaginaLogin> {
                         const Text('¿No tienes cuenta?',
                             style: TextStyle(color: Colors.black54)),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            // Ir a registro y esperar resultado
+                            final creado =
+                                await Navigator.pushNamed(context, '/registro');
+                            if (creado == true && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Cuenta creada. Inicia sesión')),
+                              );
+                            }
+                          },
                           child: const Text(
                             'Crear nueva cuenta',
                             style: TextStyle(

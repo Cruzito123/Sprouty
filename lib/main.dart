@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'utils/tema_app.dart';
 import 'screens/pagina_login.dart';
+import 'screens/pagina_registro.dart';
 
 void main() => runApp(const SproutyApp());
 
@@ -13,7 +14,11 @@ class SproutyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SPROUTY',
       theme: construirTemaApp(),
-      home: const PaginaLogin(),
+      initialRoute: '/login',
+      routes: {
+        '/login': (_) => const PaginaLogin(),
+        '/registro': (_) => const PaginaRegistro(),
+      },
     );
   }
 }

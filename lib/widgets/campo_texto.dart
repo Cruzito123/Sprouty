@@ -21,43 +21,35 @@ class CampoTexto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(etiqueta,
-            style: const TextStyle(fontSize: 12, color: Colors.black87)),
-        const SizedBox(height: 6),
-        TextField(
-          obscureText: oculto,
-          keyboardType:
-              oculto ? TextInputType.text : TextInputType.emailAddress,
-          decoration: InputDecoration(
-            hintText: sugerencia,
-            prefixIcon: iconoInicio != null
-                ? Icon(iconoInicio, color: Colors.black54)
-                : null,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: hayError ? Colors.red : kDivisor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kPrimario),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
-            ),
-            suffixIcon: iconoFinal,
-          ),
+    return TextField(
+      obscureText: oculto,
+      keyboardType: oculto ? TextInputType.text : TextInputType.emailAddress,
+      decoration: InputDecoration(
+        labelText: etiqueta,
+        hintText: sugerencia,
+        prefixIcon: iconoInicio != null
+            ? Icon(iconoInicio, color: Colors.black54)
+            : null,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: hayError ? Colors.red : kDivisor),
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: kPrimario),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
+        ),
+        suffixIcon: iconoFinal,
+      ),
     );
   }
 }
