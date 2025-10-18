@@ -9,7 +9,6 @@ class PaginaNotifications extends StatelessWidget {
     return Scaffold(
       backgroundColor: kFondoCrema,
       appBar: AppBar(
-        title: const Text('Notificaciones'),
         centerTitle: true,
         backgroundColor: kFondoCrema,
         elevation: 0,
@@ -76,18 +75,6 @@ class PaginaNotifications extends StatelessWidget {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: kFondoCrema,
-        selectedIndex: 2,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.list), label: 'Catálogo'),
-          NavigationDestination(
-              icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          NavigationDestination(
-              icon: Icon(Icons.notifications), label: 'Avisos'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Ajustes'),
-        ],
       ),
     );
   }
