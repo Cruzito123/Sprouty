@@ -13,7 +13,7 @@ class PaginaPrincipal extends StatefulWidget {
 }
 
 class _PaginaPrincipalState extends State<PaginaPrincipal> {
-  int _index = 2; // Empezamos en "Avisos" como ejemplo
+  int _index = 2;
 
   final List<String> _titulos = const [
     'Catálogo de Plantas',
@@ -23,10 +23,10 @@ class _PaginaPrincipalState extends State<PaginaPrincipal> {
   ];
 
   final List<Widget> _pantallas = const [
-    PaginaCatalog(), // aquí iría tu "Catálogo"
-    PaginaDashBoard(), // ejemplo para Dashboard
-    PaginaNotifications(), // Avisos
-    PaginaSettings(), // Ajustes (temporal)
+    PaginaCatalog(),
+    PaginaDashBoard(),
+    PaginaNotifications(),
+    PaginaSettings(),
   ];
 
   @override
@@ -36,15 +36,27 @@ class _PaginaPrincipalState extends State<PaginaPrincipal> {
       appBar: AppBar(
         backgroundColor: kFondoCrema,
         elevation: 0,
-        title: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: Text(
-            _titulos[_index],
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+        titleSpacing:
+            0, // Esto asegura que el contenido esté pegado a la izquierda
+        title: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Image.asset(
+                'assets/SPROUTY.png',
+                height: 40,
+                fit: BoxFit.contain,
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Text(
+              _titulos[_index],
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
       ),
       body: _pantallas[_index],
