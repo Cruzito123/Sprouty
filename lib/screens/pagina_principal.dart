@@ -13,7 +13,7 @@ class PaginaPrincipal extends StatefulWidget {
 }
 
 class _PaginaPrincipalState extends State<PaginaPrincipal> {
-  int _index = 2;
+  int _index = 0;
 
   final List<String> _titulos = const [
     'Catálogo de Plantas',
@@ -24,7 +24,7 @@ class _PaginaPrincipalState extends State<PaginaPrincipal> {
 
   final List<Widget> _pantallas = const [
     PaginaCatalog(),
-    PaginaDashBoard(),
+    PaginaDashboard(),
     PaginaNotifications(),
     PaginaSettings(),
   ];
