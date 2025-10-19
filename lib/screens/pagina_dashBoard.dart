@@ -68,26 +68,27 @@ class _PaginaDashboard extends State<PaginaDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Panel Principal',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            Text('Panel Principal',
+                style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 4),
-            const Text('1 planta activa',
-                style: TextStyle(fontSize: 16, color: Colors.grey)),
+            Text('1 planta activa',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyLarge
+                    ?.copyWith(color: Colors.grey.shade600)),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Tus Plantas',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text('Tus Plantas',
+                    style: Theme.of(context).textTheme.titleLarge),
                 ElevatedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Agregar'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFFE8F5E9), // Light green background
-                    foregroundColor: const Color(0xFF388E3C), // Dark green text
+                    backgroundColor: kPrimario.withOpacity(0.1),
+                    foregroundColor: kPrimario,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20)),
@@ -148,30 +149,33 @@ class _PaginaDashboard extends State<PaginaDashboard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text('ksdfkdsfsf',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('ksdfkdsfsf',
+                            style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(width: 8),
                         if (actionRequired)
                           Container(
-                            width: 8,
-                            height: 8,
+                            width: 10,
+                            height: 10,
                             decoration: const BoxDecoration(
                                 color: Colors.red, shape: BoxShape.circle),
                           ),
                       ],
                     ),
-                    const Text('Ficus Elastica',
-                        style: TextStyle(color: Colors.grey)),
+                    Text('Ficus Elastica',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: Colors.grey.shade600)),
                   ],
                 ),
                 TextButton.icon(
                   onPressed: _showParametersDialog,
                   icon: const Icon(Icons.settings_outlined,
-                      color: Colors.green, size: 20),
+                      color: kPrimario, size: 20),
                   label: const Text('Parámetros',
-                      style: TextStyle(color: Colors.green)),
+                      style: TextStyle(color: kPrimario)),
                 ),
               ],
             ),
@@ -238,8 +242,8 @@ class _PaginaDashboard extends State<PaginaDashboard> {
               label: const Text('Ver Recomendaciones Detalladas'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 40),
-                foregroundColor: const Color(0xFF388E3C),
-                side: BorderSide(color: Colors.grey.shade300),
+                foregroundColor: kPrimario,
+                side: const BorderSide(color: kDivisor),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
@@ -399,17 +403,16 @@ class _ParametersDialogState extends State<ParametersDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Modificar Parámetros',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text('Modificar Parámetros',
+                      style: Theme.of(context).textTheme.titleLarge),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
-              const Text('Configura los rangos ideales para ksdfkdsfsf',
-                  style: TextStyle(color: Colors.grey)),
+              Text('Configura los rangos ideales para ksdfkdsfsf',
+                  style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 24),
               _buildParameterSection(
                 icon: Icons.thermostat,
@@ -445,15 +448,15 @@ class _ParametersDialogState extends State<ParametersDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.lightbulb_outline,
-                        color: Colors.green, size: 20),
+                    Icon(Icons.lightbulb_outline, color: kPrimario, size: 20),
                     SizedBox(width: 8),
                     Expanded(
                         child: Text(
                             'Los valores se utilizarán para determinar si las condiciones actuales son óptimas para esta planta específica.',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.black54)))
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.black54))),
                   ],
                 ),
               ),
@@ -464,7 +467,7 @@ class _ParametersDialogState extends State<ParametersDialog> {
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Cancelar'),
-                      style: TextButton.styleFrom(
+                      style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.grey.shade700,
                         backgroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -479,7 +482,7 @@ class _ParametersDialogState extends State<ParametersDialog> {
                       onPressed: _handleSave,
                       child: const Text('Guardar Cambios'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
+                        backgroundColor: kPrimario,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -512,9 +515,7 @@ class _ParametersDialogState extends State<ParametersDialog> {
           children: [
             Icon(icon, color: Colors.grey.shade700),
             const SizedBox(width: 8),
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
           ],
         ),
         const SizedBox(height: 12),
@@ -544,15 +545,15 @@ class _ParametersDialogState extends State<ParametersDialog> {
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: const BorderSide(color: kDivisor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: const BorderSide(color: kDivisor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.green),
+              borderSide: const BorderSide(color: kPrimario),
             ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
