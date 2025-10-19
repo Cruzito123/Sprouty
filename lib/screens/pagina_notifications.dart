@@ -1,78 +1,113 @@
 import 'package:flutter/material.dart';
 import '../utils/colores_app.dart';
 
-class PaginaNotifications extends StatelessWidget {
+class PaginaNotifications extends StatefulWidget {
   const PaginaNotifications({super.key});
+
+  @override
+  State<PaginaNotifications> createState() => _PaginaNotificationsState();
+}
+
+class _PaginaNotificationsState extends State<PaginaNotifications> {
+  List<Map<String, dynamic>> notificaciones = [
+    {
+      'icon': Icons.water_drop_outlined,
+      'title': 'Recordatorio de Riego',
+      'message':
+          'Es hora de regar tu Suculenta. La humedad del suelo está por debajo del 40%.',
+      'time': 'Hace 2 horas',
+      'color': const Color(0xFFDFF5E1),
+    },
+    {
+      'icon': Icons.wb_sunny_outlined,
+      'title': 'Nivel de Luz Bajo',
+      'message':
+          'Tu Helecho necesita más luz solar. Considera moverlo cerca de una ventana.',
+      'time': 'Hace 5 horas',
+      'color': const Color(0xFFDFF5E1),
+    },
+    {
+      'icon': Icons.sensors,
+      'title': 'Actualización de Sensor',
+      'message':
+          'Sensor ESP32-001 conectado exitosamente. Temperatura: 22°C, Humedad: 65%',
+      'time': 'Ayer',
+      'color': Colors.white,
+    },
+    {
+      'icon': Icons.settings_outlined,
+      'title': 'Configuración Actualizada',
+      'message':
+          'Los parámetros de riego para Monstera han sido ajustados según tus preferencias.',
+      'time': 'Ayer',
+      'color': Colors.white,
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kFondoCrema,
       appBar: AppBar(
-        centerTitle: true,
         backgroundColor: kFondoCrema,
         elevation: 0,
+        toolbarHeight: 20,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
             const Text(
               'Tus Avisos',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            const Text('2 notificaciones nuevas'),
+            Text('${notificaciones.length} notificaciones nuevas'),
             const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimario,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            if (notificaciones.isNotEmpty)
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    notificaciones.clear();
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimario,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                child: const Text('Marcar todas leídas'),
               ),
-              child: const Text('Marcar todas leídas'),
-            ),
             const SizedBox(height: 16),
-            Expanded(
-              child: ListView(
-                children: const [
-                  NotificacionCard(
-                    icon: Icons.water_drop_outlined,
-                    title: 'Recordatorio de Riego',
-                    message:
-                        'Es hora de regar tu Suculenta. La humedad del suelo está por debajo del 40%.',
-                    time: 'Hace 2 horas',
+            if (notificaciones.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 40),
+                  child: Text(
+                    'No tienes notificaciones pendientes 🎉',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
-                  NotificacionCard(
-                    icon: Icons.wb_sunny_outlined,
-                    title: 'Nivel de Luz Bajo',
-                    message:
-                        'Tu Helecho necesita más luz solar. Considera moverlo cerca de una ventana.',
-                    time: 'Hace 5 horas',
-                  ),
-                  NotificacionCard(
-                    icon: Icons.sensors,
-                    title: 'Actualización de Sensor',
-                    message:
-                        'Sensor ESP32-001 conectado exitosamente. Temperatura: 22°C, Humedad: 65%',
-                    time: 'Ayer',
-                    colorFondo: Colors.white,
-                  ),
-                  NotificacionCard(
-                    icon: Icons.settings_outlined,
-                    title: 'Configuración Actualizada',
-                    message:
-                        'Los parámetros de riego para Monstera han sido ajustados según tus preferencias.',
-                    time: 'Ayer',
-                    colorFondo: Colors.white,
-                  ),
-                ],
-              ),
-            ),
+                ),
+              )
+            else
+              ...notificaciones.asMap().entries.map((entry) {
+                final index = entry.key;
+                final notif = entry.value;
+                return NotificacionCard(
+                  icon: notif['icon'],
+                  title: notif['title'],
+                  message: notif['message'],
+                  time: notif['time'],
+                  colorFondo: notif['color'],
+                  onDelete: () {
+                    setState(() {
+                      notificaciones.removeAt(index);
+                    });
+                  },
+                );
+              }).toList(),
           ],
         ),
       ),
@@ -86,6 +121,7 @@ class NotificacionCard extends StatelessWidget {
   final String message;
   final String time;
   final Color colorFondo;
+  final VoidCallback onDelete;
 
   const NotificacionCard({
     super.key,
@@ -93,7 +129,8 @@ class NotificacionCard extends StatelessWidget {
     required this.title,
     required this.message,
     required this.time,
-    this.colorFondo = const Color(0xFFDFF5E1), // verde claro por defecto
+    required this.onDelete,
+    this.colorFondo = const Color(0xFFDFF5E1),
   });
 
   @override
@@ -122,7 +159,7 @@ class NotificacionCard extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 20),
-                  onPressed: () {},
+                  onPressed: onDelete,
                 ),
               ],
             ),
