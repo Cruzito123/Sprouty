@@ -1,4 +1,4 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, unnecessary_brace_in_string_interps
 
 import 'package:flutter/material.dart';
 import '../utils/colores_app.dart';
@@ -66,24 +66,20 @@ class _PaginaDashboardState extends State<PaginaDashboard> {
           ]),
           const SizedBox(height: 16),
           TarjetaPlanta(
-            nombre: 'ksdfkdsfsf',
-            especie: 'Ficus Elastica',
-            tempOk: tempOk,
-            humedadOk: humOk,
-            luzOk: luzOk,
-            requiereAccion: requiereAccion,
-            // ignore: unnecessary_brace_in_string_interps
-            tempTexto: '${tempActual}°C',
-            // ignore: unnecessary_brace_in_string_interps
-            humedadTexto: '${humedadActual}%',
-            // ignore: unnecessary_brace_in_string_interps
-            luzTexto: '${luzActual} lux',
-            onEditarParametros: _abrirDialogoParametros,
-            onVerRecomendaciones: () {
-              // TODO: Navegar a recomendaciones si lo deseas
-              // Navigator.pushNamed(context, '/recomendaciones');
-            },
-          ),
+              nombre: 'Árbol del caucho',
+              especie: 'Ficus Elastica',
+              tempOk: tempOk,
+              humedadOk: humOk,
+              luzOk: luzOk,
+              requiereAccion: requiereAccion,
+              tempTexto: '${tempActual}°C',
+              humedadTexto: '${humedadActual}%',
+              luzTexto: '${luzActual} lux',
+              onEditarParametros: _abrirDialogoParametros,
+              onVerRecomendaciones: () {
+                Navigator.pushNamed(context, '/recomendaciones'); // o 'recomendaciones' según tu elección
+              },
+            ),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(8),

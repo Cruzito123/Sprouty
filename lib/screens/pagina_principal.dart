@@ -43,7 +43,7 @@ class _PaginaPrincipalState extends State<PaginaPrincipal> {
             Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: Image.asset(
-                'assets/SPROUTY.png',
+                'assets/SPROUTY_SF.png',
                 height: 40,
                 fit: BoxFit.contain,
               ),

@@ -149,7 +149,7 @@ class _PaginaLogin extends State<PaginaLogin> {
                               });
                               // ignore: use_build_context_synchronously
                               if (!context.mounted) return;
-                              Navigator.pushReplacementNamed(context, '/principal');
+                              Navigator.pushReplacementNamed(context, '/configurar');
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimario,
@@ -170,6 +170,7 @@ class _PaginaLogin extends State<PaginaLogin> {
                               ),
                             )
                           : const Text('Iniciar Sesión'),
+
                     ),
                     const SizedBox(height: 14),
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sprouty_app/screens/pagina_bienvenida.dart';
+import 'package:sprouty_app/screens/pagina_configurar_maceta.dart';
 import 'package:sprouty_app/screens/pagina_dashboard.dart';
 import 'utils/tema_app.dart';
+import 'screens/pagina_Recomendations.dart';
 import 'screens/pagina_login.dart';
 import 'screens/pagina_registro.dart';
 import 'screens/pagina_notifications.dart';
@@ -22,11 +24,13 @@ class SproutyApp extends StatelessWidget {
       routes: {
         '/bienvenida': (_) => const PaginaBienvenida(),
         '/login': (_) => const PaginaLogin(),
+        '/configurar': (_) => const PaginaConfigurarMaceta(),
         '/registro': (_) => const PaginaRegistro(),
         '/notifications': (_) => const PaginaNotifications(),
         '/principal': (_) => const PaginaPrincipal(),
         '/dashboard': (_) => const PaginaDashboard(),
-      },
+        '/recomendaciones': (c) => const PaginaRecomendations(species: 'general'),      
+        },
     );
   }
 }
