@@ -44,7 +44,7 @@ class _PaginaLogin extends State<PaginaLogin> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Logo
-                    Image.asset('assets/SPROUTY.png', height: 108),
+                    Image.asset('assets/SPROUTY_SF.png', height: 108),
                     const SizedBox(height: 30),
 
                     const Text(

@@ -19,7 +19,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/SPROUTY.png
     - assets/SPROUTY_SF.png
     - assets/google.svg
-    
+    - assets/species/espatifilo.png
+    - assets/species/lengua_de_suegra.png
+    - assets/species/monstera.png
+    - assets/species/poto.png
+    - assets/species/suculenta.png
+
+  

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/colores_app.dart';
 
-import 'pagina_catalog.dart';
+import 'pagina_catalogo.dart';
 import 'pagina_dashboard.dart';
 import 'pagina_notifications.dart';
 import 'pagina_settings.dart';
@@ -24,7 +24,7 @@ class _PaginaPrincipalState extends State<PaginaPrincipal> {
   ];
 
   final List<Widget> _pantallas = const [
-    PaginaCatalog(),
+    PaginaCatalogo(),
     PaginaDashboard(),
     PaginaNotifications(),
     PaginaSettings(),
