@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sprouty_app/screens/pagina_dashBoard.dart';
+import 'package:sprouty_app/screens/pagina_bienvenida.dart';
+import 'package:sprouty_app/screens/pagina_dashboard.dart';
 import 'utils/tema_app.dart';
 import 'screens/pagina_login.dart';
 import 'screens/pagina_registro.dart';
@@ -17,8 +18,9 @@ class SproutyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SPROUTY',
       theme: construirTemaApp(),
-      initialRoute: '/principal',
+      initialRoute: '/bienvenida',
       routes: {
+        '/bienvenida': (_) => const PaginaBienvenida(),
         '/login': (_) => const PaginaLogin(),
         '/registro': (_) => const PaginaRegistro(),
         '/notifications': (_) => const PaginaNotifications(),

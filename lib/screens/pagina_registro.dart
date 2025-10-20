@@ -48,10 +48,6 @@ class _PaginaRegistroEstado extends State<PaginaRegistro> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
-
-    //TODO: aquí iría tu llamada real a backend/Firebase.
-    // await Future.delayed(const Duration(seconds: 2));
-
     setState(() => _cargando = false);
 
     // Volver a login con "éxito"

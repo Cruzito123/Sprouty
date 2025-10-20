@@ -7,10 +7,10 @@ class PaginaLogin extends StatefulWidget {
   const PaginaLogin({super.key});
 
   @override
-  State<PaginaLogin> createState() => _PaginaLoginEstado();
+  State<PaginaLogin> createState() => _PaginaLogin();
 }
 
-class _PaginaLoginEstado extends State<PaginaLogin> {
+class _PaginaLogin extends State<PaginaLogin> {
   bool mostrarContrasena = false;
   bool cargando = false;
   String? mensajeError;
@@ -147,6 +147,9 @@ class _PaginaLoginEstado extends State<PaginaLogin> {
                                 mensajeError =
                                     'Correo electrónico o contraseña incorrectos';
                               });
+                              // ignore: use_build_context_synchronously
+                              if (!context.mounted) return;
+                              Navigator.pushReplacementNamed(context, '/principal');
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimario,

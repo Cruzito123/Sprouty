@@ -107,7 +107,7 @@ class _PaginaNotificationsState extends State<PaginaNotifications> {
                     });
                   },
                 );
-              }).toList(),
+              }),
           ],
         ),
       ),
