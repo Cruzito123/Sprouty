@@ -2,26 +2,45 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 # Modelo Usuario personalizado
+# Modelo Usuario personalizado
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
 class Usuario(AbstractUser):
     METODO_LOGIN_CHOICES = [
         ('local', 'Local'),
         ('google', 'Google'),
         ('facebook', 'Facebook'),
     ]
-    
+
     metodo_login = models.CharField(
-        max_length=20, 
-        choices=METODO_LOGIN_CHOICES, 
+        max_length=20,
+        choices=METODO_LOGIN_CHOICES,
         default='local'
     )
+
     foto_perfil = models.URLField(blank=True, null=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
-    
+
+    # 🔧 Campos redefinidos para evitar conflictos
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='macetas_api_user_groups',
+        blank=True
+    )
+
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='macetas_api_user_permissions',
+        blank=True
+    )
+
     class Meta:
         db_table = 'usuario'
-    
+
     def __str__(self):
         return self.username
+
 
 # Modelo Planta
 class Planta(models.Model):
@@ -75,7 +94,7 @@ class ConfiguracionMaceta(models.Model):
 class LecturaSensor(models.Model):
     maceta = models.ForeignKey(Maceta, on_delete=models.CASCADE)
     humedad = models.DecimalField(max_digits=5, decimal_places=2)
-    luz = models.DecimalField(max_digits=5, decimal_places=2)
+    luz = models.FloatField(null=True, blank=True)
     temperatura = models.DecimalField(max_digits=5, decimal_places=2)
     fecha_lectura = models.DateTimeField(auto_now_add=True)
     
