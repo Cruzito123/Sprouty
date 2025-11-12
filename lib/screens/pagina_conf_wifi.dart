@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:wifi_scan/wifi_scan.dart';
 import '../utils/colores_app.dart';
 
 
@@ -15,16 +17,10 @@ class PaginaConfigWifi extends StatefulWidget {
   State<PaginaConfigWifi> createState() => _PaginaConfigWifiState();
 }
 
-class _PaginaConfigWifiState extends State<PaginaConfigWifi> {
+class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBindingObserver {
   _Stage _stage = _Stage.scanning;
-  final List<String> _networks = const [
-    'Mi Casa WiFi',
-    'MOVISTAR_5G',
-    'Oficina_2.4GHz',
-    'TP-Link_Guest',
-    'Vecino_WiFi',
-    'Café_Libre'
-  ];
+  // Lista dinámica de resultados reales
+  List<WiFiAccessPoint> _scanResults = [];
   String? _selected;
   double _progress = 0.0;
   Timer? _connectTimer;
@@ -42,29 +38,69 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> {
         if (mounted) setState(() {});
       });
 
-    // Simula búsqueda inicial
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (mounted) setState(() => _stage = _Stage.list);
-    });
+    WidgetsBinding.instance.addObserver(this);
+    _initScan();
   }
 
   @override
   void dispose() {
     _connectTimer?.cancel();
     _pwController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  void _rescan() {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reintenta al volver a primer plano
+      _initScan();
+    }
+  }
+
+  Future<void> _initScan() async {
     setState(() {
       _stage = _Stage.scanning;
-      _selected = null;
-      _pwController.clear();
+      _scanResults = [];
     });
-    Future.delayed(
-  const Duration(milliseconds: 300),
-  () => Navigator.pop(context, true),
-);
+
+    // 1. Checar soporte
+    final can = await WiFiScan.instance.canStartScan(askPermissions: true);
+    if (can != CanStartScan.yes) {
+      // Intentar pedir permisos manualmente si es tema de permisos
+      await _ensurePermissions();
+    }
+
+    // 2. Lanzar escaneo
+    final ok = await WiFiScan.instance.startScan();
+    if (!ok) {
+      if (mounted) setState(() => _stage = _Stage.list); // mostrará vacío / mensaje
+      return;
+    }
+    // 3. Esperar un momento y leer
+    await Future.delayed(const Duration(seconds: 1));
+    final results = await WiFiScan.instance.getScannedResults();
+    if (!mounted) return;
+    setState(() {
+      _scanResults = results.where((ap) => (ap.ssid).trim().isNotEmpty).toList()
+        ..sort((a, b) => b.level.compareTo(a.level));
+      _stage = _Stage.list;
+    });
+  }
+
+  Future<void> _ensurePermissions() async {
+    // Android 13+: permiso NEARBY_WIFI_DEVICES se maneja internamente por wifi_scan.
+    // Aquí nos enfocamos en ubicación para <=12 y runtime general.
+    final statusLoc = await Permission.locationWhenInUse.status;
+    if (!statusLoc.isGranted) {
+      await Permission.locationWhenInUse.request();
+    }
+  }
+
+  void _rescan() {
+    _selected = null;
+    _pwController.clear();
+    _initScan();
   }
 
   void _goToPassword(String ssid) {
@@ -184,28 +220,73 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> {
             ),
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: ListView.separated(
-              itemCount: _networks.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) {
-                final name = _networks[i];
-                return Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: ListTile(
-                    leading: const Icon(Icons.signal_wifi_4_bar, color: kPrimario),
-                    title: Text(name),
-                    subtitle: const Text('Red segura • Excelente'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _goToPassword(name),
-                  ),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildResults()),
         ],
       ),
     );
+  }
+
+  Widget _buildResults() {
+    if (_scanResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off, color: Colors.grey, size: 40),
+            const SizedBox(height: 8),
+            const Text('No se encontraron redes', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(
+              'Activa Wi‑Fi o revisa permisos de ubicación',
+              style: TextStyle(color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _rescan,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            )
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      itemCount: _scanResults.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final ap = _scanResults[i];
+        final name = ap.ssid.isEmpty ? '(SSID oculto)' : ap.ssid;
+        final level = ap.level; // dBm negativo
+        final quality = _signalQuality(level);
+        return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: Icon(_wifiIcon(level), color: kPrimario),
+            title: Text(name),
+            subtitle: Text("Señal: $quality • ${ap.capabilities.contains('WPA') || ap.capabilities.contains('WEP') ? 'Segura' : 'Abierta'}"),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _goToPassword(name),
+          ),
+        );
+      },
+    );
+  }
+
+  String _signalQuality(int level) {
+    if (level >= -55) return 'Excelente';
+    if (level >= -65) return 'Muy buena';
+    if (level >= -75) return 'Buena';
+    if (level >= -85) return 'Regular';
+    return 'Débil';
+  }
+
+  IconData _wifiIcon(int level) {
+    if (level >= -55) return Icons.signal_wifi_4_bar;
+    if (level >= -65) return Icons.signal_wifi_4_bar; // fallback icon (no 3_bar symbol)
+    if (level >= -75) return Icons.network_wifi_3_bar; // alternative icons
+    if (level >= -85) return Icons.network_wifi_2_bar;
+    return Icons.network_wifi_1_bar;
   }
 
   // ---------- UI: Ingresar contraseña (estilo Figma) ----------
