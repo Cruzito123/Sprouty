@@ -1,23 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- Permisos básicos de red -->
+    <!-- Internet y estado de red -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- Permisos para escanear redes Wi‑Fi -->
-    <!-- Android 12 e inferiores: requiere ubicación de alta precisión para escanear -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Estado/cambios de Wi‑Fi (algunos fabricantes lo requieren incluso sólo para escaneo) -->
+    <!-- Wi‑Fi -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <!-- Android 13+: permiso específico para dispositivos Wi‑Fi cercanos -->
-    <uses-permission
-        android:name="android.permission.NEARBY_WIFI_DEVICES"
-        android:usesPermissionFlags="neverForLocation" />
+    <!-- Ubicación (requerida para Wi‑Fi desde Android 6) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Android 13+ -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
     
     <application
-        android:label="sprouty_app"
         android:name="${applicationName}"
+        android:label="Sprouty"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

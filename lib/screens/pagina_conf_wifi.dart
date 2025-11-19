@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wifi_scan/wifi_scan.dart';
+import 'package:wifi_iot/wifi_iot.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/colores_app.dart';
 
 
@@ -112,25 +115,115 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
     });
   }
 
-  void _startConnect(String network, [String? password]) {
+// Reemplaza esta función para conectar de verdad
+  void _startConnect(String network, {String? password, WiFiAccessPoint? ap}) async {
     setState(() {
+      _selected = network;
       _stage = _Stage.connecting;
       _progress = 0.0;
     });
 
+    // Animación de progreso (no cierra sola)
     _connectTimer?.cancel();
     _connectTimer = Timer.periodic(const Duration(milliseconds: 120), (t) {
+      if (!mounted) return;
       setState(() {
-        _progress += 0.02;
-        if (_progress >= 1.0) {
-          _progress = 1.0;
-          t.cancel();
-          // Simula conexión exitosa y vuelve a la pantalla anterior con un resultado.
-          Future.delayed(
-              const Duration(milliseconds: 300), () => Navigator.pop(context, true));
-        }
+        // sube hasta 90% mientras intentamos
+        _progress = (_progress + 0.02).clamp(0.0, 0.9);
       });
     });
+
+    final connected = await _connectToWifi(network, password: password, ap: ap);
+    if (!mounted) return;
+
+    if (connected) {
+      final hasNet = await _hasInternet();
+      _connectTimer?.cancel();
+      setState(() => _progress = 1.0);
+
+      if (hasNet) {
+        await Future.delayed(const Duration(milliseconds: 250));
+        Navigator.pop(context, true);
+      } else {
+        // Posible portal cautivo
+        final open = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Conectado sin Internet'),
+            content: const Text('Puede ser un portal cautivo. ¿Abrir el navegador para iniciar sesión?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(_, false), child: const Text('Cancelar')),
+              TextButton(onPressed: () => Navigator.pop(_, true), child: const Text('Abrir')),
+            ],
+          ),
+        );
+        if (open == true) {
+          await _openCaptivePortal();
+        }
+        setState(() => _stage = _Stage.list);
+      }
+    } else {
+      _connectTimer?.cancel();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo conectar a la red')),
+      );
+      setState(() => _stage = _Stage.list);
+    }
+  }
+
+// Determina seguridad a partir de capabilities
+  NetworkSecurity _securityFor(WiFiAccessPoint ap) {
+    final caps = ap.capabilities.toUpperCase();
+    if (caps.contains('WEP')) return NetworkSecurity.WEP;
+    if (caps.contains('WPA3')) return NetworkSecurity.WPA; // fallback
+    if (caps.contains('WPA')) return NetworkSecurity.WPA;
+    return NetworkSecurity.NONE;
+  }
+
+  WiFiAccessPoint? _apBySsid(String ssid) {
+    try {
+      return _scanResults.firstWhere((a) => a.ssid == ssid);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _connectToWifi(String ssid, {String? password, WiFiAccessPoint? ap}) async {
+    try {
+      final apObj = ap ?? _apBySsid(ssid);
+      final sec = apObj != null ? _securityFor(apObj) : (password == null ? NetworkSecurity.NONE : NetworkSecurity.WPA);
+
+      // Android 10+: el sistema puede mostrar diálogo (WifiNetworkSpecifier/Suggestion)
+      final ok = await WiFiForIoTPlugin.connect(
+        ssid,
+        password: sec == NetworkSecurity.NONE ? null : password,
+        security: sec,
+        joinOnce: true,       // no guardar permanente
+        withInternet: true,   // preferir redes con internet
+        isHidden: false,
+      );
+      return ok == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _hasInternet() async {
+    try {
+      final uri = Uri.parse('http://connectivitycheck.gstatic.com/generate_204');
+      final r = await http.get(uri).timeout(const Duration(seconds: 5));
+      return r.statusCode == 204;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _openCaptivePortal() async {
+    final uri = Uri.parse('http://example.com');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -257,16 +350,23 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
       itemBuilder: (context, i) {
         final ap = _scanResults[i];
         final name = ap.ssid.isEmpty ? '(SSID oculto)' : ap.ssid;
-        final level = ap.level; // dBm negativo
+        final level = ap.level;
         final quality = _signalQuality(level);
         return Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListTile(
             leading: Icon(_wifiIcon(level), color: kPrimario),
             title: Text(name),
-            subtitle: Text("Señal: $quality • ${ap.capabilities.contains('WPA') || ap.capabilities.contains('WEP') ? 'Segura' : 'Abierta'}"),
+            subtitle: Text("Señal: $quality • ${_isOpen(ap) ? 'Abierta' : 'Segura'}"),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _goToPassword(name),
+            onTap: () {
+              if (_isOpen(ap)) {
+                setState(() => _selected = name);
+                _startConnect(name, ap: ap); // conecta directo si es abierta
+              } else {
+                _goToPassword(name);
+              }
+            },
           ),
         );
       },
@@ -287,6 +387,12 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
     if (level >= -75) return Icons.network_wifi_3_bar; // alternative icons
     if (level >= -85) return Icons.network_wifi_2_bar;
     return Icons.network_wifi_1_bar;
+  }
+
+  // Determina si la red es abierta (sin WEP/WPA)
+  bool _isOpen(WiFiAccessPoint ap) {
+    final caps = ap.capabilities.toUpperCase();
+    return !(caps.contains('WEP') || caps.contains('WPA'));
   }
 
   // ---------- UI: Ingresar contraseña (estilo Figma) ----------
@@ -408,7 +514,7 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: canConnect
-                              ? () => _startConnect(ssid, _pwController.text)
+                              ? () => _startConnect(ssid, password: _pwController.text, ap: _apBySsid(ssid))
                               : null,
                           style: ButtonStyle(
                             minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
