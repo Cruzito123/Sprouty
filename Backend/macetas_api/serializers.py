@@ -25,7 +25,7 @@ class LecturaSensorSerializer(serializers.ModelSerializer):
     class Meta:
         model = LecturaSensor
         # deja solo los campos que sí quieres exponer
-        fields = ('id', 'humedad', 'temperatura', 'maceta', 'fecha_lectura')
+        fields = ('id', 'humedad', 'temperatura', 'luz', 'maceta', 'fecha_lectura')
         read_only_fields = ('id', 'fecha_lectura')
 
 class JardinVirtualSerializer(serializers.ModelSerializer):

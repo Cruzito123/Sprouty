@@ -14,6 +14,11 @@ class MacetaViewSet(viewsets.ModelViewSet):
     queryset = Maceta.objects.all()
     serializer_class = MacetaSerializer
 
+# ViewSet para ConfiguracionMaceta
+class ConfiguracionMacetaViewSet(viewsets.ModelViewSet):
+    queryset = ConfiguracionMaceta.objects.all()
+    serializer_class = ConfiguracionMacetaSerializer
+
 # ViewSet para LecturaSensor
 class LecturaSensorViewSet(viewsets.ModelViewSet):
     queryset = LecturaSensor.objects.all()
@@ -141,3 +146,16 @@ def ultima_lectura(request, maceta_id: int):
     if not lec:
         return Response({'detail': 'Sin lecturas'}, status=status.HTTP_404_NOT_FOUND)
     return Response(LecturaSensorSerializer(lec).data, status=200)
+
+@api_view(['GET'])
+def configuracion_maceta(request, maceta_id: int):
+    """
+    Devuelve la última configuración (ConfiguracionMaceta) para la maceta dada.
+    """
+    cfg = (ConfiguracionMaceta.objects
+           .filter(maceta_id=maceta_id)
+           .order_by('-fecha_actualizacion')
+           .first())
+    if not cfg:
+        return Response({'detail': 'Sin configuración'}, status=status.HTTP_404_NOT_FOUND)
+    return Response(ConfiguracionMacetaSerializer(cfg).data, status=200)

@@ -1,25 +1,22 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../utils/colores_app.dart';
-import '../utils/modelos_recomendaciones.dart';
-import '../services/servicio_recomendaciones.dart';
 import '../widgets/bloque_lecturas.dart';
 import '../widgets/tarjeta_consejo.dart';
+import '../services/api.dart';
 
-typedef ConditionFetcher = Future<PlantCondition> Function();
+// Tolerancias para construir rangos a partir de los objetivos
+const double kHumTolPct = 10;   // ±10%
+const double kLuzTolPct = 30;   // ±30%
+const double kTempTolC  = 2.0;  // ±2°C
 
 class PaginaRecomendations extends StatefulWidget {
   final String species;
-  final ConditionFetcher? fetcher;
-  final Duration pollInterval;
 
   const PaginaRecomendations({
     super.key,
     this.species = 'general',
-    this.fetcher,
-    this.pollInterval = const Duration(seconds: 10),
   });
 
   @override
@@ -27,68 +24,70 @@ class PaginaRecomendations extends StatefulWidget {
 }
 
 class _PaginaRecomendationsState extends State<PaginaRecomendations> {
-  late PlantCondition _condition;
-  List<Recommendation> _recs = const [];
-  Timer? _timer;
+  // Id de maceta objetivo (ajústalo si pasas el id por argumentos)
+  final int _macetaId = 1;
+
+  double? _humedad;
+  double? _temperatura;
+  double? _luz;
+  DateTime? _timestamp;
+  ConfigMaceta? _cfg;
+
   bool _loading = true;
-  bool _busy = false; // evita superponer fetches
+  String? _error;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    // Estado inicial de respaldo (se actualizará en el primer fetch)
-    _condition = PlantCondition(
-      species: widget.species,
-      soilMoisture: 50,
-      temperature: 22,
-      lightLux: 5000,
-    );
     _startPolling();
   }
 
   void _startPolling() {
     _fetchAndUpdate();
     _timer?.cancel();
-    _timer = Timer.periodic(widget.pollInterval, (_) => _fetchAndUpdate());
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchAndUpdate());
   }
 
   Future<void> _fetchAndUpdate() async {
-    if (!mounted || _busy) return;
-    _busy = true;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     try {
-      final fetcher = widget.fetcher ?? _mockFetcher(widget.species);
-      final cond = await fetcher();
-      if (!mounted) return;
+      // 1) Última lectura
+      final lec = await Api.getUltimaLectura(_macetaId);
+      if (lec == null) {
+        setState(() {
+          _error = 'Sin lecturas para la maceta $_macetaId.';
+        });
+        return;
+      }
 
-      final recs = RecommendationService.computeRecommendations(cond);
+      // 2) Configuración de maceta (última)
+      final cfg = await Api.getConfigMaceta(_macetaId);
+      if (cfg == null) {
+        setState(() {
+          _error = 'No hay configuración para la maceta $_macetaId.';
+        });
+        return;
+      }
+
       setState(() {
-        _condition = cond;
-        _recs = recs;
+        _humedad = lec.humedad;
+        _temperatura = lec.temperatura;
+        _luz = lec.luz;
+        _timestamp = lec.fecha;
+        _cfg = cfg;
         _loading = false;
       });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    } finally {
-      _busy = false;
+    } catch (e) {
+      setState(() {
+        _error = 'Error al cargar recomendaciones: $e';
+        _loading = false;
+      });
     }
-  }
-
-  // Simulador (reemplaza por tu fetch real de sensores)
-  ConditionFetcher _mockFetcher(String species) {
-    final rng = Random();
-    return () async {
-      await Future.delayed(const Duration(milliseconds: 300));
-      return PlantCondition(
-        species: species,
-        soilMoisture: 20 + rng.nextDouble() * 60,
-        temperature: 12 + rng.nextDouble() * 20,
-        lightLux: 200 + rng.nextDouble() * 25000,
-        timestamp: DateTime.now(),
-      );
-    };
   }
 
   @override
@@ -100,19 +99,38 @@ class _PaginaRecomendationsState extends State<PaginaRecomendations> {
   String _fmt(DateTime t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
 
+  // Construye rangos a partir de objetivos y tolerancias
+  ({double min, double max}) _rangoPct(double objetivo, double tolPct, {double? floor, double? ceil}) {
+    final min = (objetivo * (1 - tolPct / 100)).clamp(floor ?? double.negativeInfinity, ceil ?? double.infinity);
+    final max = (objetivo * (1 + tolPct / 100)).clamp(floor ?? double.negativeInfinity, ceil ?? double.infinity);
+    return (min: min, max: max);
+  }
+
+  ({double min, double max}) _rangoTemp(double objetivo, double delta) {
+    return (min: objetivo - delta, max: objetivo + delta);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final profile = RecommendationService.profileFor(_condition.species);
-    final humedadOk = _condition.soilMoisture >= profile.moistureRange.start &&
-        _condition.soilMoisture <= profile.moistureRange.end;
-    final tempOk = _condition.temperature >= profile.tempRange.start &&
-        _condition.temperature <= profile.tempRange.end;
-    final luzOk = _condition.lightLux >= profile.lightRange.start &&
-        _condition.lightLux <= profile.lightRange.end;
+    final fondo = kFondoCrema;
+
+    final hasData = _humedad != null && _temperatura != null && _cfg != null;
+    // Rango ideal desde configuración
+    final humR = _cfg == null ? (min: 0.0, max: 0.0) : _rangoPct(_cfg!.humedadObjetivo, kHumTolPct, floor: 0, ceil: 100);
+    final luzR = (_cfg?.luzObjetivo == null)
+        ? (min: 0.0, max: double.infinity)
+        : _rangoPct(_cfg!.luzObjetivo!, kLuzTolPct, floor: 0);
+    final tempR = _cfg == null ? (min: 0.0, max: 0.0) : _rangoTemp(_cfg!.temperaturaObjetivo, kTempTolC);
+
+    final humedadOk = hasData ? (_humedad! >= humR.min && _humedad! <= humR.max) : false;
+    final tempOk = hasData ? (_temperatura! >= tempR.min && _temperatura! <= tempR.max) : false;
+    final luzOk = (_luz == null || _cfg?.luzObjetivo == null)
+        ? true
+        : (_luz! >= luzR.min && _luz! <= luzR.max);
     final todoOk = humedadOk && tempOk && luzOk;
 
     return Scaffold(
-      backgroundColor: kFondoCrema,
+      backgroundColor: fondo,
       appBar: AppBar(
         title: const Text('Recomendaciones'),
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -136,110 +154,82 @@ class _PaginaRecomendationsState extends State<PaginaRecomendations> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const SizedBox(height: 6),
-          const Text(
-            'Basado en las lecturas actuales de tus sensores',
-            style: TextStyle(color: Colors.black87),
-          ),
-          const SizedBox(height: 12),
-
-          // Lecturas + timestamp
-          BloqueLecturas(
-            humedad: '${_condition.soilMoisture.toStringAsFixed(0)}%',
-            temperatura: '${_condition.temperature.toStringAsFixed(1)}°C',
-            luz: '${_condition.lightLux.toStringAsFixed(0)} lx',
-            timestamp: _fmt(_condition.timestamp),
-          ),
-
-          const SizedBox(height: 18),
-
-          const Text('Consejos Personalizados',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-
-          // Consejos rápidos (semaforización)
-          ..._consejosRapidos(humedadOk, tempOk, luzOk, todoOk),
-
-          const SizedBox(height: 18),
-
-          if (_recs.isNotEmpty) ...[
-            const Text('Recomendaciones detalladas',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Column(
-              children: _recs.map((r) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  child: ListTile(
-                    title: Text(r.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(r.subtitle),
-                    trailing: Text(r.score.toStringAsFixed(1)),
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: Text(r.title),
-                        content: Text(r.details),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+          if (_error != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12)),
+              child: Text(_error!, style: const TextStyle(color: Colors.red)),
             ),
             const SizedBox(height: 12),
           ],
 
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _fetchAndUpdate,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Actualizar Recomendaciones'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimario,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
+          const SizedBox(height: 6),
+          const Text('Basado en lecturas recientes de tus sensores', style: TextStyle(color: Colors.black87)),
+          const SizedBox(height: 12),
+
+          BloqueLecturas(
+            humedad: _humedad == null ? '—' : '${_humedad!.toStringAsFixed(0)}%',
+            temperatura: _temperatura == null ? '—' : '${_temperatura!.toStringAsFixed(1)}°C',
+            luz: _luz == null ? '—' : '${_luz!.toStringAsFixed(0)} lx',
+            timestamp: _timestamp == null ? '—' : _fmt(_timestamp!),
           ),
-          const SizedBox(height: 10),
-          const Text(
-            '💡 Las recomendaciones se actualizan cada vez que cambian las lecturas de los sensores. Puedes refrescar manualmente en cualquier momento.',
-            style: TextStyle(color: Colors.black54, fontSize: 12),
-          ),
+
+          const SizedBox(height: 18),
+
+          const Text('Consejos Personalizados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+
+          ..._consejosRapidos(humedadOk, tempOk, luzOk, todoOk, humR, tempR, luzR),
+
+          const SizedBox(height: 18),
+
+          // Recomendaciones detalladas basadas en desvíos respecto a los rangos de configuración
+          ..._detalladas(humedadOk, tempOk, luzOk, humR, tempR, luzR),
+
           const SizedBox(height: 24),
         ]),
       ),
     );
   }
 
-  List<Widget> _consejosRapidos(bool humedadOk, bool tempOk, bool luzOk, bool todoOk) {
+  List<Widget> _consejosRapidos(
+    bool humedadOk,
+    bool tempOk,
+    bool luzOk,
+    bool todoOk,
+    ({double min, double max}) humR,
+    ({double min, double max}) tempR,
+    ({double min, double max}) luzR,
+  ) {
     final cards = <Widget>[
       TarjetaConsejo(
         icono: Icons.water_drop,
-        titulo: humedadOk ? 'Humedad perfecta' : 'Humedad insuficiente',
-        subtitulo: humedadOk
-            ? 'La humedad es ideal (${_condition.soilMoisture.toStringAsFixed(0)}%). Mantén esta rutina.'
-            : 'Humedad ${_condition.soilMoisture.toStringAsFixed(0)}%. Ajusta el riego.',
+        titulo: humedadOk ? 'Humedad perfecta' : 'Humedad fuera de rango',
+        subtitulo: _humedad == null
+            ? '—'
+            : humedadOk
+                ? 'Ideal (${_humedad!.toStringAsFixed(0)}%). Objetivo ${humR.min.toStringAsFixed(0)}–${humR.max.toStringAsFixed(0)}%.'
+                : 'Actual: ${_humedad!.toStringAsFixed(0)}%. Rango ideal: ${humR.min.toStringAsFixed(0)}–${humR.max.toStringAsFixed(0)}%.',
         bueno: humedadOk,
       ),
       TarjetaConsejo(
         icono: Icons.thermostat,
         titulo: tempOk ? 'Temperatura ideal' : 'Temperatura fuera de rango',
-        subtitulo: tempOk
-            ? '${_condition.temperature.toStringAsFixed(1)}°C es adecuada.'
-            : 'Actual: ${_condition.temperature.toStringAsFixed(1)}°C. Protege o ventila según sea necesario.',
+        subtitulo: _temperatura == null
+            ? '—'
+            : tempOk
+                ? '${_temperatura!.toStringAsFixed(1)}°C dentro de ${tempR.min.toStringAsFixed(1)}–${tempR.max.toStringAsFixed(1)}°C.'
+                : 'Actual: ${_temperatura!.toStringAsFixed(1)}°C. Ideal: ${tempR.min.toStringAsFixed(1)}–${tempR.max.toStringAsFixed(1)}°C.',
         bueno: tempOk,
       ),
       TarjetaConsejo(
         icono: Icons.wb_sunny,
         titulo: luzOk ? 'Iluminación óptima' : 'Ajustar iluminación',
-        subtitulo: luzOk
-            ? '${_condition.lightLux.toStringAsFixed(0)} lux favorece un crecimiento saludable.'
-            : 'Iluminación: ${_condition.lightLux.toStringAsFixed(0)} lux. Mueve la planta o añade luz.',
+        subtitulo: (_luz == null || _cfg?.luzObjetivo == null)
+            ? 'Sin objetivo de luz configurado.'
+            : luzOk
+                ? '${_luz!.toStringAsFixed(0)} lux dentro de ${luzR.min.toStringAsFixed(0)}–${luzR.max.toStringAsFixed(0)}.'
+                : 'Actual: ${_luz!.toStringAsFixed(0)} lux. Ideal: ${luzR.min.toStringAsFixed(0)}–${luzR.max.toStringAsFixed(0)}.',
         bueno: luzOk,
       ),
     ];
@@ -248,11 +238,59 @@ class _PaginaRecomendationsState extends State<PaginaRecomendations> {
       cards.add(const TarjetaConsejo(
         icono: Icons.emoji_events,
         titulo: '¡Todo perfecto!',
-        subtitulo: 'Todas las condiciones son ideales. Tu planta está feliz.',
+        subtitulo: 'Todas las condiciones están dentro de lo ideal.',
         bueno: true,
       ));
     }
 
     return cards;
+  }
+
+  List<Widget> _detalladas(
+    bool humedadOk,
+    bool tempOk,
+    bool luzOk,
+    ({double min, double max}) humR,
+    ({double min, double max}) tempR,
+    ({double min, double max}) luzR,
+  ) {
+    final widgets = <Widget>[];
+
+    if (_humedad != null && !humedadOk) {
+      if (_humedad! < humR.min) {
+        widgets.add(_detalle('Regar ahora', 'Humedad baja (${_humedad!.toStringAsFixed(0)}%). Aumenta riego moderadamente.'));
+      } else {
+        widgets.add(_detalle('Evitar riego', 'Humedad alta (${_humedad!.toStringAsFixed(0)}%). Permite secar el sustrato.'));
+      }
+    }
+
+    if (_temperatura != null && !tempOk) {
+      if (_temperatura! < tempR.min) {
+        widgets.add(_detalle('Proteger del frío', 'Temperatura baja (${_temperatura!.toStringAsFixed(1)}°C). Reubica a un sitio más cálido.'));
+      } else {
+        widgets.add(_detalle('Reducir calor', 'Temperatura alta (${_temperatura!.toStringAsFixed(1)}°C). Ventila o proporciona sombra.'));
+      }
+    }
+
+    if (_luz != null && _cfg?.luzObjetivo != null && !luzOk) {
+      if (_luz! < luzR.min) {
+        widgets.add(_detalle('Aumentar luz', 'Iluminación insuficiente (${_luz!.toStringAsFixed(0)} lux). Acerca a una ventana o usa luz artificial.'));
+      } else {
+        widgets.add(_detalle('Disminuir luz', 'Exceso de luz (${_luz!.toStringAsFixed(0)} lux). Mueve a luz indirecta o sombrea.'));
+      }
+    }
+
+    return widgets;
+  }
+
+  Widget _detalle(String titulo, String subtitulo) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: ListTile(
+        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitulo),
+        trailing: const Icon(Icons.info_outline),
+      ),
+    );
   }
 }

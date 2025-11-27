@@ -54,6 +54,30 @@ class LecturaSensor {
   }
 }
 
+class ConfigMaceta {
+  final int macetaId;
+  final double humedadObjetivo;
+  final double? luzObjetivo;
+  final double temperaturaObjetivo;
+
+  ConfigMaceta({
+    required this.macetaId,
+    required this.humedadObjetivo,
+    required this.luzObjetivo,
+    required this.temperaturaObjetivo,
+  });
+
+  factory ConfigMaceta.fromJson(Map<String, dynamic> j) {
+    final maceta = j.containsKey('maceta_id') ? j['maceta_id'] : j['maceta'];
+    return ConfigMaceta(
+      macetaId: _asInt(maceta),
+      humedadObjetivo: _asDouble(j['humedad_objetivo']),
+      luzObjetivo: j['luz_objetivo'] == null ? null : _asDouble(j['luz_objetivo']),
+      temperaturaObjetivo: _asDouble(j['temperatura_objetivo']),
+    );
+  }
+}
+
 /// ---------- Servicio API ----------
 class Api {
   /// ⬇️ Ajusta esta BASE según tu entorno:
@@ -86,5 +110,21 @@ class Api {
     throw Exception(
       'Error HTTP ${res.statusCode} al obtener última lectura: ${res.body}',
     );
+  }
+
+  static Future<ConfigMaceta?> getConfigMaceta(int macetaId) async {
+    final url = Uri.parse('$base/api/configuracion/$macetaId/');
+    final res = await http.get(url).timeout(const Duration(seconds: 8));
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      if (data is Map<String, dynamic>) {
+        return ConfigMaceta.fromJson(data);
+      }
+      throw const FormatException('Respuesta 200 pero sin JSON válido de ConfiguracionMaceta');
+    }
+    if (res.statusCode == 404) return null;
+
+    throw Exception('Error HTTP ${res.statusCode} al obtener configuración: ${res.body}');
   }
 }

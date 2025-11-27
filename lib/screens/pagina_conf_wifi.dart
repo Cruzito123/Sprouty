@@ -22,15 +22,13 @@ class PaginaConfigWifi extends StatefulWidget {
 
 class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBindingObserver {
   _Stage _stage = _Stage.scanning;
-  // Lista dinámica de resultados reales
   List<WiFiAccessPoint> _scanResults = [];
   String? _selected;
   double _progress = 0.0;
   Timer? _connectTimer;
-
-  // controller para la contraseña en la vista "password"
   late final TextEditingController _pwController;
   bool _obscure = true;
+  String? _pwError; // agregado
 
   @override
   void initState() {
@@ -112,11 +110,32 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
       _stage = _Stage.password;
       _pwController.clear();
       _obscure = true;
+      _pwError = null;
     });
+  }
+
+  String? _validatePassword(String text, NetworkSecurity sec) {
+    if (sec == NetworkSecurity.NONE) return null;
+    if (sec == NetworkSecurity.WEP) {
+      if (text.length < 5) return 'Mínimo 5 caracteres (WEP)';
+      return null;
+    }
+    if (text.length < 8) return 'Mínimo 8 caracteres (WPA)';
+    return null;
   }
 
 // Reemplaza esta función para conectar de verdad
   void _startConnect(String network, {String? password, WiFiAccessPoint? ap}) async {
+    final apObj = ap ?? _apBySsid(network);
+    final sec = apObj != null ? _securityFor(apObj) : NetworkSecurity.WPA;
+    if (sec != NetworkSecurity.NONE) {
+      final err = _validatePassword(password ?? '', sec);
+      if (err != null) {
+        setState(() => _pwError = err);
+        return;
+      }
+    }
+
     setState(() {
       _selected = network;
       _stage = _Stage.connecting;
@@ -127,30 +146,36 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
     _connectTimer?.cancel();
     _connectTimer = Timer.periodic(const Duration(milliseconds: 120), (t) {
       if (!mounted) return;
-      setState(() {
-        // sube hasta 90% mientras intentamos
-        _progress = (_progress + 0.02).clamp(0.0, 0.9);
-      });
+      setState(() => _progress = (_progress + 0.02).clamp(0.0, 0.9));
     });
 
     final connected = await _connectToWifi(network, password: password, ap: ap);
     if (!mounted) return;
 
+    bool finalConnected = connected;
     if (connected) {
+      // Confirmar que realmente estamos en ese SSID
+      try {
+        final current = await WiFiForIoTPlugin.getSSID();
+        if (current != null && current.replaceAll('"', '') != network) {
+          finalConnected = false;
+        }
+      } catch (_) {}
+    }
+
+    if (finalConnected) {
       final hasNet = await _hasInternet();
       _connectTimer?.cancel();
       setState(() => _progress = 1.0);
-
       if (hasNet) {
         await Future.delayed(const Duration(milliseconds: 250));
         Navigator.pop(context, true);
       } else {
-        // Posible portal cautivo
         final open = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
             title: const Text('Conectado sin Internet'),
-            content: const Text('Puede ser un portal cautivo. ¿Abrir el navegador para iniciar sesión?'),
+            content: const Text('Puede ser un portal cautivo. ¿Abrir el navegador?'),
             actions: [
               TextButton(onPressed: () => Navigator.pop(_, false), child: const Text('Cancelar')),
               TextButton(onPressed: () => Navigator.pop(_, true), child: const Text('Abrir')),
@@ -164,9 +189,14 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
       }
     } else {
       _connectTimer?.cancel();
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo conectar a la red')),
+        SnackBar(
+          content: Text(
+            (password != null && password.isNotEmpty && sec != NetworkSecurity.NONE)
+                ? 'Error: contraseña incorrecta o red no disponible'
+                : 'No se pudo conectar a la red',
+          ),
+        ),
       );
       setState(() => _stage = _Stage.list);
     }
@@ -398,7 +428,9 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
   // ---------- UI: Ingresar contraseña (estilo Figma) ----------
   Widget _buildPasswordCard() {
     final ssid = _selected ?? '';
-    final canConnect = _pwController.text.isNotEmpty;
+    final ap = _apBySsid(ssid);
+    final sec = ap != null ? _securityFor(ap) : NetworkSecurity.WPA;
+    final canConnect = _pwController.text.isNotEmpty && _validatePassword(_pwController.text, sec) == null;
 
     return Expanded(
       child: Column(
@@ -466,6 +498,9 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
                       TextField(
                         controller: _pwController,
                         obscureText: _obscure,
+                        onChanged: (_) => setState(() {
+                          _pwError = _validatePassword(_pwController.text, sec);
+                        }),
                         decoration: InputDecoration(
                           hintText: 'Ingresa la contraseña',
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -473,6 +508,7 @@ class _PaginaConfigWifiState extends State<PaginaConfigWifi> with WidgetsBinding
                             icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                             onPressed: () => setState(() => _obscure = !_obscure),
                           ),
+                          errorText: _pwError,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
