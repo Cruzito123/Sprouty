@@ -11,11 +11,17 @@ import 'screens/pagina_registro.dart';
 import 'screens/pagina_notifications.dart';
 import 'screens/pagina_principal.dart';
 import 'package:sprouty_app/screens/pagina_catalogo_tarjeta.dart';
-import 'package:sprouty_app/screens/pagina_nombrar.dart';    
+import 'package:sprouty_app/screens/pagina_nombrar.dart';
 import 'package:sprouty_app/screens/pagina_agregar_especie.dart';
-import 'package:sprouty_app/screens/pagina_catalogo.dart'; 
+import 'package:sprouty_app/screens/pagina_catalogo.dart';
+import 'services/servicio_notificaciones.dart';
 
-void main() => runApp(const SproutyApp());
+void main() async {
+  // <--- Convertir a async
+  WidgetsFlutterBinding.ensureInitialized(); // <--- Necesario para plugins
+  await ServicioNotificaciones().init(); // <--- Inicializar servicio
+  runApp(const SproutyApp());
+}
 
 class SproutyApp extends StatelessWidget {
   const SproutyApp({super.key});
@@ -36,12 +42,16 @@ class SproutyApp extends StatelessWidget {
         '/notifications': (_) => const PaginaNotifications(),
         '/principal': (_) => const PaginaPrincipal(),
         '/dashboard': (_) => const PaginaDashboard(),
-        '/recomendaciones': (c) => const PaginaRecomendations(species: 'general'),    
-        '/catalogo': (_) => const PaginaCatalogoTarjeta(),    
-        '/nombrar': (_) => const PaginaNombrar(especie: Especie(id: '', nombre: '', descripcion: '')),
-        '/agregar_especie': (_) => const PaginaAgregarEspecie(nombrePlanta: '',),
+        '/recomendaciones': (c) =>
+            const PaginaRecomendations(species: 'general'),
+        '/catalogo': (_) => const PaginaCatalogoTarjeta(),
+        '/nombrar': (_) => const PaginaNombrar(
+            especie: Especie(id: '', nombre: '', descripcion: '')),
+        '/agregar_especie': (_) => const PaginaAgregarEspecie(
+              nombrePlanta: '',
+            ),
         '/catalogo_dashboard': (_) => const PaginaCatalogo(),
-        },
+      },
     );
   }
 }

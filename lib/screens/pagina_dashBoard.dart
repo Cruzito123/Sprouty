@@ -6,6 +6,7 @@ import '../utils/modelos.dart';
 import '../widgets/dialogo_parametros.dart';
 import '../widgets/tarjeta_planta.dart';
 import '../services/api.dart'; // <-- NUEVO
+import '../services/servicio_notificaciones.dart'; // <-- NUEVO
 
 class PaginaDashboard extends StatefulWidget {
   const PaginaDashboard({super.key});
@@ -72,14 +73,44 @@ class _PaginaDashboardState extends State<PaginaDashboard> {
         luzActual = lec.luz;
         _ultimaActualizacion = lec.fecha;
       });
+      if (tempActual != null && humedadActual != null && luzActual != null) {
+        _verificarAlertas(tempActual!, humedadActual!, luzActual!);
+      }
     } catch (e) {
       setState(() {
         _error = 'Error al cargar: $e';
       });
     } finally {
-      setState(() {
-        _cargando = false;
-      });
+      if (mounted) {
+        setState(() {
+          _cargando = false;
+        });
+      }
+    }
+  }
+
+  void _verificarAlertas(double temp, double humedad, double luz) {
+    final servicioNotificaciones = ServicioNotificaciones();
+    if (temp < _param.minTemp || temp > _param.maxTemp) {
+      servicioNotificaciones.mostrarNotificacion(
+        id: 1,
+        titulo: 'Alerta de Temperatura',
+        cuerpo: 'La temperatura actual es ${temp.toStringAsFixed(1)}°C.',
+      );
+    }
+    if (humedad < _param.minHumedad || humedad > _param.maxHumedad) {
+      servicioNotificaciones.mostrarNotificacion(
+        id: 2,
+        titulo: 'Alerta de Humedad',
+        cuerpo: 'La humedad actual es ${humedad.toStringAsFixed(1)}%.',
+      );
+    }
+    if (luz < _param.minLuz || luz > _param.maxLuz) {
+      servicioNotificaciones.mostrarNotificacion(
+        id: 3,
+        titulo: 'Alerta de Luz',
+        cuerpo: 'La luz actual es ${luz.toStringAsFixed(0)} lux.',
+      );
     }
   }
 
