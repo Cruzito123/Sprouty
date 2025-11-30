@@ -75,8 +75,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'Sprouty',
         'USER': 'postgres',
-        'PASSWORD': 'raymundo240204',
-        'HOST': '127.0.0.1',
+        'PASSWORD': 'Losarmas1*',
+        'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
             'client_encoding': 'UTF8',
