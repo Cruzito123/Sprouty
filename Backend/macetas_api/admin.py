@@ -1,5 +1,7 @@
 from django.contrib import admin
 from .models import Usuario, Planta, Maceta, ConfiguracionMaceta, LecturaSensor, JardinVirtual, Notificacion
+from django.contrib import admin
+from .models import Usuario
 
 @admin.register(Planta)
 class PlantaAdmin(admin.ModelAdmin):

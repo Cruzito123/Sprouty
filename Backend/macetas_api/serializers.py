@@ -1,5 +1,8 @@
 from rest_framework import serializers
 from .models import Usuario, Planta, Maceta, ConfiguracionMaceta, LecturaSensor, JardinVirtual, Notificacion
+from rest_framework import serializers
+from django.contrib.auth.hashers import make_password
+from .models import Usuario
 
 class PlantaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,7 +12,7 @@ class PlantaSerializer(serializers.ModelSerializer):
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'foto_perfil', 'metodo_login', 'fecha_registro']
+        fields = ['id', 'username', 'email', 'first_name', 'foto_perfil', 'metodo_login', 'fecha_registro']
 
 class MacetaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,3 +43,22 @@ class NotificacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notificacion
         fields = '__all__'
+
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = ['id', 'first_name', 'email', 'password']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+    def create(self, validated_data):
+        user = Usuario(
+            first_name=validated_data['first_name'],
+            email=validated_data['email'],
+            metodo_login='local'
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user

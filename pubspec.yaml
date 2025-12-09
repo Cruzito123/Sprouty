@@ -15,18 +15,28 @@ dependencies:
   url_launcher: ^6.3.2
   wifi_iot: ^0.3.19+2
   wifi_scan: ^0.4.1+2
+  google_sign_in: ^6.3.0
+  firebase_core: ^2.30.1
+  firebase_auth: ^4.17.4
+  flutter_local_notifications: ^17.0.0
+  device_info_plus: ^9.0.2
+  image_picker: ^1.0.7
+  shared_preferences: ^2.2.2
+  google_fonts: ^6.3.3
+  animate_do: ^4.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  flutter_local_notifications: ^17.0.0
-  flutter_launcher_icons: ^0.13.1 
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/SPROUTY_SF.png
+    # Recuerda añadir la nueva imagen con márgenes aquí si la creaste con otro nombre
+    # - assets/SPROUTY_SF_PADDED.png 
     - assets/google.svg
     - assets/species/espatifilo.png
     - assets/species/lengua_de_suegra.png
@@ -34,10 +44,17 @@ flutter:
     - assets/species/poto.png
     - assets/species/suculenta.png
 
+# --- CONFIGURACIÓN DEL ICONO ---
 flutter_launcher_icons:
-  android: true
+  android: "launcher_icon"
   ios: true
-  image_path: "assets/SPROUTY_SF.png"
-  adaptive_icon_background: "#5CAF6B"
-  adaptive_icon_foreground: "assets/SPROUTY_SF.png"
+  # Imagen de respaldo para versiones viejas
+  image_path: "assets/SPROUTY_SF.png" 
+  min_sdk_android: 21
   
+  # Configuración Adaptativa (Android 8+)
+  # Fondo verde sólido
+  adaptive_icon_background: "#5CAF6B"
+  # IMPORTANTE: Usa aquí la imagen que tiene espacio transparente extra alrededor.
+  # Si usas la original, se cortará el texto.
+  adaptive_icon_foreground: "assets/SPROUTY_SF.png" # <- CAMBIA ESTO POR TU IMAGEN CON MARGEN SI LA CREASTE

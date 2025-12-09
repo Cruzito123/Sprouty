@@ -9,6 +9,9 @@ class CampoTexto extends StatelessWidget {
   final bool hayError;
   final Widget? iconoFinal;
 
+  // 🔹 CONTROLADOR NECESARIO
+  final TextEditingController? controller;
+
   const CampoTexto({
     super.key,
     required this.etiqueta,
@@ -17,11 +20,13 @@ class CampoTexto extends StatelessWidget {
     this.oculto = false,
     this.hayError = false,
     this.iconoFinal,
+    this.controller, // <— AÑADIDO
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller, // <— AÑADIDO
       obscureText: oculto,
       keyboardType: oculto ? TextInputType.text : TextInputType.emailAddress,
       decoration: InputDecoration(

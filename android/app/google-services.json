@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "705193680672",
+    "project_id": "sprouty-app-7f325",
+    "storage_bucket": "sprouty-app-7f325.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:705193680672:android:18b28c4cbb887c1a8d0145",
+        "android_client_info": {
+          "package_name": "com.example.sprouty_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "705193680672-uq01uqvvf9mjov3mbocjmjhj13tj7gn6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.sprouty_app",
+            "certificate_hash": "06559fd5268b8b73dd1165a39f31c066434cc9c5"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbp0MdxD9VPhF0vBwyUI0FFlk4-89CCaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

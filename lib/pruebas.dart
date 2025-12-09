@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'utils/tema_app.dart';
 import 'screens/pagina_notifications.dart';
 
 void main() {
@@ -14,7 +13,6 @@ class PruebaNotificaciones extends StatelessWidget {
     return MaterialApp(
       title: 'Pantalla de Notificaciones',
       debugShowCheckedModeBanner: false,
-      theme: construirTemaApp(),
       home: const PaginaNotifications(),
     );
   }

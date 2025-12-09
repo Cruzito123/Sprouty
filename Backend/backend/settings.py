@@ -63,27 +63,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-
-
-
-# PostgreSQL (cuando tengas la BD configurada)
+# -------------------------------
+# ✅ POSTGRESQL (TU CONFIGURACIÓN)
+# -------------------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'Sprouty',
         'USER': 'postgres',
-        'PASSWORD': 'Losarmas1*',
-        'HOST': 'localhost',
+        'PASSWORD': '1234',                # <--- Tus datos
+        'HOST': '127.0.0.1',               # <--- Tus datos
         'PORT': '5432',
         'OPTIONS': {
             'client_encoding': 'UTF8',
         },
     }
 }
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -131,4 +126,9 @@ CORS_ALLOWED_ORIGINS = [
 
 # Allow all origins in development
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Modelo de usuario personalizado
 AUTH_USER_MODEL = 'macetas_api.Usuario'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

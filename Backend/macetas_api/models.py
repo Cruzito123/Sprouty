@@ -7,6 +7,15 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class Usuario(AbstractUser):
+    username = None
+    last_name = None
+
+    first_name = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name']
+
     METODO_LOGIN_CHOICES = [
         ('local', 'Local'),
         ('google', 'Google'),
@@ -22,7 +31,6 @@ class Usuario(AbstractUser):
     foto_perfil = models.URLField(blank=True, null=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
-    # 🔧 Campos redefinidos para evitar conflictos
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='macetas_api_user_groups',
@@ -39,7 +47,7 @@ class Usuario(AbstractUser):
         db_table = 'usuario'
 
     def __str__(self):
-        return self.username
+        return self.email
 
 
 # Modelo Planta
