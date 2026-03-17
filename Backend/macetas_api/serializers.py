@@ -1,8 +1,6 @@
 from rest_framework import serializers
-from .models import Usuario, Planta, Maceta, ConfiguracionMaceta, LecturaSensor, JardinVirtual, Notificacion
-from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import Usuario
+from .models import Usuario, Planta, Maceta, ConfiguracionMaceta, LecturaSensor, JardinVirtual, Notificacion
 
 class PlantaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -32,8 +30,8 @@ class LecturaSensorSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'fecha_lectura')
 
 class JardinVirtualSerializer(serializers.ModelSerializer):
-    planta = PlantaSerializer(read_only=True)
-    maceta = MacetaSerializer(read_only=True)
+    planta = PlantaSerializer()
+    maceta = MacetaSerializer()
     
     class Meta:
         model = JardinVirtual

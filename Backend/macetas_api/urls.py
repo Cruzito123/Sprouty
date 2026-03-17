@@ -23,6 +23,8 @@ urlpatterns = [
     path('recibir_lectura/', views.recibir_lectura, name='recibir_lectura'),
     path('lecturas/ultima/<int:maceta_id>/', views.ultima_lectura, name='ultima_lectura'),
     path('configuracion/<int:maceta_id>/', views.configuracion_maceta, name='configuracion_maceta'),
+    path('registrar_maceta/', views.registrar_maceta, name='registrar_maceta'),
+
     
     # 3. 🔐 AUTENTICACIÓN (Registro y Logins)
     # Estas son las que buscará tu Flutter en /api/...

@@ -1,13 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-# Modelo Usuario personalizado
-# Modelo Usuario personalizado
-from django.contrib.auth.models import AbstractUser
-from django.db import models
 
+# ============================================
+#   USUARIO PERSONALIZADO
+# ============================================
 class Usuario(AbstractUser):
-    username = None
+    username = None           # Eliminamos el username clásico
     last_name = None
 
     first_name = models.CharField(max_length=100)
@@ -28,15 +27,17 @@ class Usuario(AbstractUser):
         default='local'
     )
 
+    # URL (no archivo físico)
     foto_perfil = models.URLField(blank=True, null=True)
+
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
+    # Fix a relaciones duplicadas de Django
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='macetas_api_user_groups',
         blank=True
     )
-
     user_permissions = models.ManyToManyField(
         'auth.Permission',
         related_name='macetas_api_user_permissions',
@@ -50,100 +51,130 @@ class Usuario(AbstractUser):
         return self.email
 
 
-# Modelo Planta
+# ============================================
+#   PLANTA
+# ============================================
 class Planta(models.Model):
     nombre_comun = models.CharField(max_length=100)
     nombre_cientifico = models.CharField(max_length=150)
     descripcion = models.TextField(blank=True, null=True)
+
     humedad_min = models.DecimalField(max_digits=5, decimal_places=2)
     humedad_max = models.DecimalField(max_digits=5, decimal_places=2)
+
     luz_min = models.DecimalField(max_digits=5, decimal_places=2)
     luz_max = models.DecimalField(max_digits=5, decimal_places=2)
+
     temperatura_min = models.DecimalField(max_digits=5, decimal_places=2)
     temperatura_max = models.DecimalField(max_digits=5, decimal_places=2)
+
     recomendaciones = models.TextField(blank=True, null=True)
-    
+
     class Meta:
         db_table = 'planta'
-    
+
     def __str__(self):
         return f"{self.nombre_comun} ({self.nombre_cientifico})"
 
-# Modelo Maceta
+
+# ============================================
+#   MACETA
+# ============================================
 class Maceta(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+
     nombre_maceta = models.CharField(max_length=100)
     ssid_wifi = models.CharField(max_length=100, blank=True, null=True)
+
     estado_conexion = models.BooleanField(default=False)
     fecha_configuracion = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'maceta'
-    
+
     def __str__(self):
         return self.nombre_maceta
 
-# Modelo ConfiguracionMaceta
+
+# ============================================
+#   CONFIGURACIÓN DE MACETA
+# ============================================
 class ConfiguracionMaceta(models.Model):
     maceta = models.ForeignKey(Maceta, on_delete=models.CASCADE)
+
     humedad_objetivo = models.DecimalField(max_digits=5, decimal_places=2)
     luz_objetivo = models.DecimalField(max_digits=5, decimal_places=2)
     temperatura_objetivo = models.DecimalField(max_digits=5, decimal_places=2)
+
     notificar_alertas = models.BooleanField(default=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = 'configuracionmaceta'
-    
+
     def __str__(self):
         return f"Config {self.maceta.nombre_maceta}"
 
-# Modelo LecturaSensor
+
+# ============================================
+#   LECTURA DEL SENSOR
+# ============================================
 class LecturaSensor(models.Model):
     maceta = models.ForeignKey(Maceta, on_delete=models.CASCADE)
+
     humedad = models.DecimalField(max_digits=5, decimal_places=2)
     luz = models.FloatField(null=True, blank=True)
     temperatura = models.DecimalField(max_digits=5, decimal_places=2)
+
     fecha_lectura = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'lecturasensor'
-    
+
     def __str__(self):
         return f"Lectura {self.maceta.nombre_maceta} - {self.fecha_lectura}"
 
-# Modelo JardinVirtual
+
+# ============================================
+#   JARDÍN VIRTUAL (Relación planta-maceta-usuario)
+# ============================================
 class JardinVirtual(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     maceta = models.ForeignKey(Maceta, on_delete=models.CASCADE)
     planta = models.ForeignKey(Planta, on_delete=models.CASCADE)
+
     fecha_asignacion = models.DateTimeField(auto_now_add=True)
     alias = models.CharField(max_length=100, blank=True, null=True)
-    
+
     class Meta:
         db_table = 'jardinvirtual'
-    
+
     def __str__(self):
         return f"{self.alias or self.planta.nombre_comun} en {self.maceta.nombre_maceta}"
 
-# Modelo Notificacion
+
+# ============================================
+#   NOTIFICACIONES
+# ============================================
 class Notificacion(models.Model):
     TIPO_CHOICES = [
         ('alerta', 'Alerta'),
         ('recordatorio', 'Recordatorio'),
         ('informacion', 'Información'),
     ]
-    
+
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     maceta = models.ForeignKey(Maceta, on_delete=models.CASCADE)
+
     titulo = models.CharField(max_length=100)
     mensaje = models.TextField()
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+
     fecha_envio = models.DateTimeField(auto_now_add=True)
     leida = models.BooleanField(default=False)
-    
+
     class Meta:
         db_table = 'notification'
-    
+
     def __str__(self):
         return f"{self.tipo}: {self.titulo}"

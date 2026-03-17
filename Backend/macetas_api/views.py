@@ -7,7 +7,11 @@ from django.core.files.storage import default_storage
 
 # Importamos tus modelos y serializadores
 from .models import Planta, Maceta, ConfiguracionMaceta, LecturaSensor, JardinVirtual, Notificacion, Usuario
-from .serializers import *
+from .serializers import (
+    PlantaSerializer, MacetaSerializer, ConfiguracionMacetaSerializer,
+    LecturaSensorSerializer, JardinVirtualSerializer, NotificacionSerializer,
+    UserRegisterSerializer
+)
 
 # -------------------------------------------------------------------------
 # VIEWSETS (CRUD AUTOMÁTICO) - No se han tocado
@@ -72,48 +76,64 @@ def estadisticas_maceta(request, maceta_id):
 @api_view(['POST'])
 def recibir_lectura(request):
     print("📡 Datos recibidos del ESP:", request.data)
+
     try:
         temperatura = request.data.get('temperatura')
         humedad = request.data.get('humedad')
         maceta_id = request.data.get('maceta_id')
 
-        if temperatura is None or humedad is None or maceta_id is None:
-            return Response({'error': 'Faltan datos.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not temperatura or not humedad or not maceta_id:
+            return Response({'error': 'Faltan datos.'}, status=400)
 
         try:
             temperatura = float(temperatura)
             humedad = float(humedad)
-        except ValueError:
-            return Response({'error': 'Valores deben ser numéricos.'}, status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response({'error': 'Valores no numéricos'}, status=400)
 
         try:
             maceta = Maceta.objects.get(id=maceta_id)
         except Maceta.DoesNotExist:
-            return Response({'error': 'Maceta no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Maceta no encontrada'}, status=404)
 
         lectura = LecturaSensor.objects.create(
             temperatura=temperatura,
             humedad=humedad,
             maceta=maceta
         )
-        return Response({'mensaje': 'Lectura recibida correctamente ✅', 'id': lectura.id}, status=status.HTTP_201_CREATED)
+
+        return Response(
+            {'mensaje': 'Lectura guardada', 'id': lectura.id},
+            status=201
+        )
 
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': str(e)}, status=500)
+
 
 @api_view(['GET'])
-def ultima_lectura(request, maceta_id: int):
-    lec = LecturaSensor.objects.filter(maceta_id=maceta_id).order_by('-fecha_lectura').first()
+def ultima_lectura(request, maceta_id):
+    lec = LecturaSensor.objects.filter(
+        maceta_id=maceta_id
+    ).order_by('-fecha_lectura').first()
+
     if not lec:
-        return Response({'detail': 'Sin lecturas'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'detail': 'Sin lecturas'}, status=404)
+
     return Response(LecturaSensorSerializer(lec).data, status=200)
 
+
 @api_view(['GET'])
-def configuracion_maceta(request, maceta_id: int):
-    cfg = ConfiguracionMaceta.objects.filter(maceta_id=maceta_id).order_by('-fecha_actualizacion').first()
+def configuracion_maceta(request, maceta_id):
+    cfg = ConfiguracionMaceta.objects.filter(
+        maceta_id=maceta_id
+    ).order_by('-fecha_actualizacion').first()
+
     if not cfg:
-        return Response({'detail': 'Sin configuración'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'detail': 'Sin configuración'}, status=404)
+
     return Response(ConfiguracionMacetaSerializer(cfg).data, status=200)
+
 
 # -------------------------------------------------------------------------
 # AUTENTICACIÓN (Login y Registro)
@@ -122,22 +142,21 @@ def configuracion_maceta(request, maceta_id: int):
 @api_view(['POST'])
 def registro_usuario(request):
     print("DATA RECIBIDA:", request.data)
-    nombre = request.data.get("nombre")
-    email = request.data.get("email")
-    password = request.data.get("password")
-
-    if not nombre or not email or not password:
-        return Response({"error": "Faltan datos"}, status=400)
-
-    try:
-        user = Usuario(first_name=nombre, email=email, metodo_login="local")
-        user.username = email
-        user.set_password(password)
-        user.save(force_insert=True)
-        return Response({"ok": True, "id": user.id}, status=201)
-    except Exception as e:
-        print("ERROR_BACKEND:", e)
-        return Response({"error": str(e)}, status=500)
+    serializer = UserRegisterSerializer(data={
+        'first_name': request.data.get("nombre"),
+        'email': request.data.get("email"),
+        'password': request.data.get("password")
+    })
+    
+    if serializer.is_valid():
+        try:
+            user = serializer.save()
+            return Response({"ok": True, "id": user.id}, status=201)
+        except Exception as e:
+            print("ERROR_BACKEND:", e)
+            return Response({"error": str(e)}, status=500)
+    
+    return Response({"error": "Datos inválidos o faltantes", "details": serializer.errors}, status=400)
 
 @api_view(['POST'])
 def login_google_check(request):
@@ -241,3 +260,51 @@ def cambiar_password(request, user_id):
     usuario.save()
 
     return Response({'mensaje': 'Contraseña actualizada con éxito'}, status=200)
+
+
+@api_view(['POST'])
+def registrar_maceta(request):
+    try:
+        usuario_id = request.data.get('usuario_id')
+        planta_id = request.data.get('planta_id')
+        nombre = request.data.get('nombre')
+        descripcion = request.data.get('descripcion', '')
+        config = request.data.get('config')
+
+        if not usuario_id or not planta_id or not nombre or not config:
+            return Response({'error': 'Datos incompletos'}, status=400)
+
+        usuario = Usuario.objects.get(id=usuario_id)
+        planta = Planta.objects.get(id=planta_id)
+
+        # 1. Crear Maceta
+        maceta = Maceta.objects.create(
+            usuario=usuario,
+            nombre_maceta=nombre,
+            estado_conexion=True
+        )
+
+        # 2. Crear Configuración
+        conf = ConfiguracionMaceta.objects.create(
+            maceta=maceta,
+            humedad_objetivo=config['humedad'],
+            temperatura_objetivo=config['tempMax'],   # OJO: tempMin y tempMax
+            luz_objetivo=config['luzMax']
+        )
+
+        # 3. Registrar relación en Jardín
+        jardin = JardinVirtual.objects.create(
+            usuario=usuario,
+            maceta=maceta,
+            planta=planta,
+            alias=nombre
+        )
+
+        return Response({
+            'ok': True,
+            'maceta_id': maceta.id,
+            'jardin_id': jardin.id
+        }, status=201)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
